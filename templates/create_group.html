@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Создать группу - Noir Messenger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: linear-gradient(135deg, #0f0f1e 0%, #1a0f2e 100%);
+            --sidebar: #0a0a12;
+            --text: #ffffff;
+            --gray: #1c1c2a;
+            --border: #2c2c3e;
+            --primary: #7c3aed;
+            --primary-hover: #6d28d9;
+        }
+        
+        body, html {
+            margin: 0;
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow-x: hidden;
+        }
+        
+        body {
+            background-attachment: fixed;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        
+        .back-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 8px 16px;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+        
+        .back-btn:hover {
+            background: rgba(124, 58, 237, 0.1);
+            border-color: var(--primary);
+        }
+        
+        .card {
+            background: rgba(28, 28, 42, 0.5);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: var(--primary);
+            font-size: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.9);
+        }
+        
+        input[type="text"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: 'Inter', sans-serif;
+            box-sizing: border-box;
+        }
+        
+        input[type="text"]:focus {
+            background: rgba(0, 0, 0, 0.5);
+            border-color: var(--primary);
+            outline: none;
+        }
+        
+        .members-container {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .member-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: rgba(124, 58, 237, 0.1);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+        
+        .member-item span {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .member-item button {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid #dc2626;
+            color: #fca5a5;
+            padding: 4px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        
+        .search-results {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+            margin-top: 8px;
+        }
+        
+        .search-result {
+            padding: 10px;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(124, 58, 237, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .search-result:hover {
+            background: rgba(124, 58, 237, 0.1);
+        }
+        
+        .search-result:last-child {
+            border-bottom: none;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 12px;
+        }
+        
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-hover);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(124, 58, 237, 0.3);
+        }
+        
+        .btn-secondary {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: var(--text);
+        }
+        
+        .btn-secondary:hover {
+            background: rgba(124, 58, 237, 0.1);
+            border-color: var(--primary);
+        }
+        
+        .message {
+            padding: 12px 16px;
+            border-radius: 10px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .message.success {
+            background: rgba(34, 197, 94, 0.2);
+            border-left: 3px solid #22c55e;
+            color: #86efac;
+        }
+        
+        .message.error {
+            background: rgba(239, 68, 68, 0.2);
+            border-left: 3px solid #ef4444;
+            color: #fca5a5;
+        }
+        
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <button class="back-btn" onclick="window.location.href='/chat'">← Назад в чат</button>
+        
+        <div class="card">
+            <h2>👥 Создать новую группу</h2>
+            
+            <form id="groupForm">
+                <div class="form-group">
+                    <label>📝 Название группы</label>
+                    <input type="text" id="groupName" required placeholder="Например: Друзья, Проект, Работа">
+                </div>
+                
+                <div class="form-group">
+                    <label>📷 Аватар группы (если хочешь)</label>
+                    <input type="file" id="groupAvatar" accept="image/*">
+                </div>
+                
+                <div class="form-group">
+                    <label>👥 Добавить участников</label>
+                    <input type="text" id="searchMember" placeholder="Найди пользователя...">
+                    <div class="search-results" id="searchResults" style="display: none;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Участники группы:</label>
+                    <div class="members-container" id="membersContainer">
+                        <p style="opacity: 0.5; text-align: center; margin: 0;">Пока никого нет</p>
+                    </div>
+                </div>
+                
+                <div class="btn-group">
+                    <button type="submit" class="btn-primary">✓ Создать группу</button>
+                    <button type="button" class="btn-secondary" onclick="window.location.href='/chat'">Отмена</button>
+                </div>
+            </form>
+        </div>
+        
+        <div id="messageContainer"></div>
+    </div>
+
+    <script>
+        const members = new Set();
+        
+        // Поиск пользователей
+        document.getElementById('searchMember').addEventListener('input', async (e) => {
+            const query = e.target.value.trim();
+            if (query.length < 1) {
+                document.getElementById('searchResults').style.display = 'none';
+                return;
+            }
+            
+            try {
+                const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+                const data = await res.json();
+                
+                const results = document.getElementById('searchResults');
+                results.innerHTML = '';
+                
+                data.users.forEach(user => {
+                    if (members.has(user.username)) return; // Прятай уже добавленных
+                    
+                    const div = document.createElement('div');
+                    div.className = 'search-result';
+                    div.innerHTML = `
+                        <span>${user.username}</span>
+                        <button type="button" style="background: var(--primary); color: white; border: none; padding: 4px 8px; border-radius: 6px; cursor: pointer;">Добавить</button>
+                    `;
+                    
+                    div.querySelector('button').addEventListener('click', () => {
+                        members.add(user.username);
+                        updateMembersList();
+                        document.getElementById('searchMember').value = '';
+                        results.style.display = 'none';
+                    });
+                    
+                    results.appendChild(div);
+                });
+                
+                results.style.display = data.users.length > 0 ? 'block' : 'none';
+            } catch (err) {
+                console.error(err);
+            }
+        });
+        
+        function updateMembersList() {
+            const container = document.getElementById('membersContainer');
+            if (members.size === 0) {
+                container.innerHTML = '<p style="opacity: 0.5; text-align: center; margin: 0;">Пока никого нет</p>';
+                return;
+            }
+            
+            container.innerHTML = '';
+            members.forEach(member => {
+                const div = document.createElement('div');
+                div.className = 'member-item';
+                div.innerHTML = `
+                    <span>👤 ${member}</span>
+                    <button type="button">Удалить</button>
+                `;
+                
+                div.querySelector('button').addEventListener('click', () => {
+                    members.delete(member);
+                    updateMembersList();
+                });
+                
+                container.appendChild(div);
+            });
+        }
+        
+        // Создание группы
+        document.getElementById('groupForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const name = document.getElementById('groupName').value.trim();
+            if (!name) {
+                showMessage('Введи название группы', 'error');
+                return;
+            }
+            
+            if (members.size === 0) {
+                showMessage('Добавь хотя бы одного участника', 'error');
+                return;
+            }
+            
+            try {
+                const res = await fetch('/api/groups', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        name: name,
+                        members: Array.from(members)
+                    })
+                });
+                
+                const data = await res.json();
+                if (data.success) {
+                    showMessage('✓ Группа создана!', 'success');
+                    setTimeout(() => window.location.href = '/chat?room=' + data.group_id, 1500);
+                } else {
+                    showMessage(data.error || 'Ошибка создания', 'error');
+                }
+            } catch (err) {
+                showMessage('Ошибка: ' + err.message, 'error');
+            }
+        });
+        
+        function showMessage(msg, type) {
+            const container = document.getElementById('messageContainer');
+            const div = document.createElement('div');
+            div.className = `message ${type}`;
+            div.textContent = msg;
+            container.innerHTML = '';
+            container.appendChild(div);
+        }
+    </script>
+</body>
+</html>

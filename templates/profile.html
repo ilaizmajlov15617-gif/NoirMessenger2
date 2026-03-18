@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Профиль {{ profile_user }} — Noir</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #000000; --sidebar: #0f0f0f; --text: #ffffff;
+            --gray: #1c1c1e; --border: #2c2c2e;
+        }
+        body, html { margin: 0; height: 100%; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
+        .profile-container { max-width: 500px; margin: 0 auto; padding: 20px; }
+        .back-btn { background: transparent; border: 1px solid var(--border); padding: 8px 16px; border-radius: 20px; color: var(--text); cursor: pointer; margin-bottom: 20px; }
+        .profile-header { text-align: center; }
+        .avatar-large { width: 120px; height: 120px; border-radius: 50%; background: var(--gray); margin: 20px auto; object-fit: cover; }
+        .username-header { font-size: 24px; font-weight: 600; margin: 12px 0 0; }
+        .btn-msg { background: white; color: black; border: none; padding: 10px 20px; border-radius: 22px; cursor: pointer; font-weight: 600; margin-top: 16px; }
+        .btn-msg:hover { opacity: 0.9; }
+    </style>
+</head>
+<body>
+    <div class="profile-container">
+        <button class="back-btn" onclick="window.history.back()">← Назад</button>
+        
+        <div class="profile-header">
+            {% if profile_avatar %}
+                <img src="/avatars/{{ profile_avatar }}" alt="Avatar" class="avatar-large">
+            {% else %}
+                <div class="avatar-large">👤</div>
+            {% endif %}
+            <h1 class="username-header">{{ profile_user }}</h1>
+            <button class="btn-msg" onclick="openDM('{{ profile_user }}')">Написать</button>
+        </div>
+    </div>
+
+    <script>
+        function openDM(username) {
+            const room = [location.pathname.split('/').pop(), username].sort().join('__');
+            // Переходим обратно в чат
+            window.location.href = '/chat';
+        }
+    </script>
+</body>
+</html>

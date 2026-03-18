@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Регистрация — Noir Messenger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body, html { height: 100%; margin: 0; font-family: 'Inter', sans-serif; background: #0b0b0f; color: #fff; display: flex; align-items: center; justify-content: center; }
+        .card { width: 340px; padding: 24px 28px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.15); border-radius: 14px; }
+        h1 { margin: 0 0 18px; font-size: 22px; }
+        label { display: block; margin-top: 12px; font-size: 12px; opacity: 0.75; }
+        input { width: 100%; padding: 10px 12px; margin-top: 6px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.3); color: #fff; }
+        button { width: 100%; margin-top: 18px; padding: 10px 14px; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; background: #fff; color: #000; }
+        .link { margin-top: 12px; font-size: 13px; text-align: center; }
+        .link a { color: rgba(255,255,255,0.8); text-decoration: none; }
+        .error { margin-top: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(255, 40, 40, 0.15); color: #ff8f8f; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Регистрация</h1>
+        {% if error %}
+            <div class="error">{{ error }}</div>
+        {% endif %}
+        <form method="POST">
+            <label for="username">Имя</label>
+            <input id="username" name="username" autocomplete="username" required>
+            <label for="password">Пароль</label>
+            <input id="password" name="password" type="password" autocomplete="new-password" required>
+            <button type="submit">Зарегистрироваться</button>
+        </form>
+        <div class="link">Уже есть аккаунт? <a href="/login">Войти</a></div>
+        <script>
+            const STORAGE_KEY = 'noir_username';
+            const saved = localStorage.getItem(STORAGE_KEY);
+            const usernameInput = document.getElementById('username');
+            if (saved) usernameInput.value = saved;
+
+            document.querySelector('form').addEventListener('submit', function () {
+                localStorage.setItem(STORAGE_KEY, usernameInput.value.trim());
+            });
+        </script>
+    </div>
+</body>
+</html>

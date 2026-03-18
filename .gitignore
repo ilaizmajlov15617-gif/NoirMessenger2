@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+chat.db
+avatars/
+media_uploads/
+audio_messages/
+stories/
+.env

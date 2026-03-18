@@ -1,0 +1,1107 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Noir Messenger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <style>
+        :root {
+            --bg: #000000;
+            --sidebar: #050505;
+            --text: #f5f5f5;
+            --gray: #141414;
+            --border: rgba(255, 255, 255, 0.12);
+            --primary: #ffffff;
+            --primary-hover: rgba(255, 255, 255, 0.85);
+        }
+        
+        body, html {
+            margin: 0;
+            height: 100%;
+            font-family: 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            overflow: hidden;
+        }
+        
+        body {
+            background-attachment: fixed;
+        }
+        
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+        
+        .sidebar {
+            width: 280px;
+            border-right: 1px solid var(--border);
+            background: rgba(10, 10, 18, 0.8);
+            backdrop-filter: blur(10px);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+            padding-bottom: 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .header-row h2 {
+            margin: 0;
+            font-size: 26px;
+            font-weight: 900;
+            letter-spacing: 0.6px;
+            background: none;
+            color: white;
+        }
+        
+        .header-row small {
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 12px;
+        }
+        
+        .sidebar-buttons {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+        
+        .story-bar {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 12px;
+            padding: 8px 4px;
+            overflow-x: auto;
+        }
+        
+        .story-circle {
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(28, 28, 42, 0.6);
+            cursor: pointer;
+            flex-shrink: 0;
+            position: relative;
+        }
+        
+        .story-circle img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
+        }
+        
+        .story-circle span {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+        }
+        
+        .sidebar-btn {
+            flex: 1;
+            background: transparent;
+            border: 1px solid var(--border);
+            color: rgba(255, 255, 255, 0.7);
+            padding: 8px 12px;
+            border-radius: 10px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--primary);
+            color: var(--text);
+        }
+        
+        .search-box {
+            background: rgba(28, 28, 42, 0.6);
+            border-radius: 20px;
+            padding: 10px 16px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+        }
+        
+        .search-box input {
+            width: 100%;
+            border: none;
+            background: none;
+            outline: none;
+            color: white;
+            font-size: 13px;
+        }
+        
+        .search-box input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .search-results {
+            position: absolute;
+            top: 140px;
+            left: 16px;
+            width: 248px;
+            background: rgba(28, 28, 42, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            z-index: 1000;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .search-result {
+            padding: 12px 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+            transition: all 0.2s ease;
+        }
+        
+        .search-result:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .search-result:last-child {
+            border-bottom: none;
+        }
+        
+        .avatar-small {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            overflow: hidden;
+        }
+        
+        .avatar-small img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .online-list {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .online-list::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .online-list::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .online-list::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+        }
+        
+        .online-item {
+            padding: 12px 10px;
+            border-radius: 12px;
+            cursor: pointer;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+        
+        .online-item:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.18);
+        }
+        
+        .online-item.active {
+            background: rgba(255, 255, 255, 0.06);
+            border-color: var(--primary);
+        }
+        
+        .online-avatar {
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.05));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            overflow: hidden;
+        }
+        
+        .online-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .main-chat {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: linear-gradient(180deg, rgba(15, 15, 30, 0.2) 0%, rgba(26, 15, 46, 0.1) 100%);
+        }
+        
+        .chat-header {
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            background: rgba(10, 10, 18, 0.4);
+            backdrop-filter: blur(10px);
+        }
+        
+        .chat-header h3 {
+            margin: 0;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        
+        .chat-header span {
+            opacity: 0.6;
+            font-size: 12px;
+        }
+        
+        .messages-area {
+            flex: 1;
+            padding: 16px 24px 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .messages-area::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .messages-area::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        
+        .messages-area::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+        }
+        
+        .load-more {
+            text-align: center;
+            margin-bottom: 8px;
+        }
+        
+        .load-more button {
+            border: 1px solid var(--border);
+            background: transparent;
+            padding: 8px 14px;
+            border-radius: 12px;
+            cursor: pointer;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+        
+        .load-more button:hover {
+            border-color: var(--primary);
+            color: var(--text);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .bubble {
+            max-width: 70%;
+            padding: 10px 14px;
+            font-size: 14px;
+            border-radius: 16px;
+            position: relative;
+            animation: messageIn 0.3s ease;
+        }
+        
+        @keyframes messageIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .bubble.in {
+            background: rgba(28, 28, 42, 0.8);
+            color: var(--text);
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+        }
+        
+        .bubble.out {
+            background: rgba(255, 255, 255, 0.1);
+            color: var(--text);
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+        
+        .bubble.pending {
+            opacity: 0.70;
+        }
+        
+        .bubble .bubble-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+            gap: 8px;
+            margin-bottom: 4px;
+        }
+        
+        .bubble .meta {
+            font-size: 10px;
+            opacity: 0.55;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .bubble .status {
+            font-size: 11px;
+        }
+        
+        .bubble .time {
+            font-family: monospace;
+        }
+        
+        .bubble-text {
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .u-name {
+            font-size: 10px;
+            opacity: 0.5;
+            display: block;
+            margin-bottom: 4px;
+        }
+        
+        .bubble audio {
+            width: 100%;
+            margin-top: 8px;
+            border-radius: 8px;
+        }
+
+        .input-area {
+            padding: 16px 24px;
+            display: flex;
+            gap: 10px;
+            background: rgba(10, 10, 18, 0.4);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid var(--border);
+            align-items: center;
+        }
+        
+        .input-wrapper {
+            flex: 1;
+            background: rgba(28, 28, 42, 0.6);
+            border-radius: 20px;
+            padding: 10px 16px;
+            border: 1px solid var(--border);
+            transition: all 0.2s ease;
+        }
+        
+        .input-wrapper:focus-within {
+            border-color: var(--primary);
+            background: rgba(28, 28, 42, 0.8);
+        }
+        
+        input {
+            width: 100%;
+            border: none;
+            background: none;
+            outline: none;
+            color: white;
+            font-size: 14px;
+        }
+        
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .send-btn {
+            background: var(--primary);
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            color: white;
+            transition: all 0.2s ease;
+        }
+        
+        .send-btn:hover {
+            background: var(--primary-hover);
+            transform: scale(1.05);
+        }
+        
+        .audio-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+        }
+        
+        .audio-btn:hover:not(.recording) {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.08);
+        }
+        
+        .audio-btn.recording {
+            background: rgba(255, 255, 255, 0.12);
+            border-color: rgba(255, 255, 255, 0.25);
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                box-shadow: 0 0 10px rgba(255, 255, 255, 0.25);
+            }
+            50% {
+                opacity: 0.7;
+                box-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <div class="header-row">
+                <div>
+                    <h2>Noir</h2>
+                    <small>{{ username }}</small>
+                </div>
+            </div>
+            
+            <div class="sidebar-buttons">
+                <button class="sidebar-btn" onclick="window.location.href='/settings'" title="Профиль и настройки">⚙️ Профиль</button>
+                <button class="sidebar-btn" onclick="window.location.href='/create_group'" title="Создать новую группу">👥 Группа</button>
+                <button class="sidebar-btn" onclick="window.location.href='/logout'" title="Выйти">🚪 Выйти</button>
+            </div>
+
+            <div class="story-bar" id="storyBar">
+                <div class="story-circle" id="storyCreate" title="Добавить кружок">+</div>
+            </div>
+            <input type="file" id="storyInput" accept="image/*,audio/*" style="display:none;">
+            <input type="file" id="mediaInput" accept="image/*,video/*" style="display:none;">
+
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Найти юзера...">
+            </div>
+            <div class="search-results" id="searchResults" style="display:none;"></div>
+
+            <div class="online-list" id="onlineList">
+                <div class="online-item active" data-room="global" onclick="switchRoom(this, 'global')">
+                    <span style="font-size: 16px;">📢</span>
+                    <span>#общий</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-chat">
+            <div class="chat-header">
+                <div>
+                    <h3 id="roomTitle">Общий чат</h3>
+                    <span id="roomDescription">Сообщения видны всем</span>
+                </div>
+            </div>
+
+            <div class="messages-area" id="msgBox">
+                <div class="load-more">
+                    <button id="loadMoreBtn">Загрузить ещё</button>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <button class="audio-btn" id="audioBtn" title="Записать голос">🎤</button>
+                <button class="audio-btn" id="mediaBtn" title="Отправить фото/видео">📎</button>
+                <button class="audio-btn" id="storyBtn" title="Добавить кружок">🟢</button>
+                <div class="input-wrapper">
+                    <input type="text" id="msgInput" placeholder="Написать..." autocomplete="off">
+                </div>
+                <button class="send-btn" id="sendBtn">→</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const username = {{ username|tojson }};
+        const ROOM_GLOBAL = 'global';
+        let currentRoom = ROOM_GLOBAL;
+        let oldestMessageId = null;
+        let mediaRecorder, audioChunks = [];
+        let isRecording = false;
+
+        const notifySound = new Audio('/static/notify.mp3');
+        notifySound.preload = 'auto';
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        const socket = io();
+
+        socket.on('connect', () => {
+            socket.emit('join', { room: currentRoom });
+            loadHistory();
+            loadStories();
+        });
+
+        socket.on('online', (data) => {
+            updateOnline((data && data.users) ? data.users : []);
+        });
+
+        socket.on('message', (data) => {
+            // Исключаем дубликаты по CID (отправка самого же сообщения)
+            if (data.cid && document.getElementById('msg_' + data.cid)) {
+                return;
+            }
+
+            if (data.room === currentRoom) {
+                if (data.msg_type === 'audio' && data.media_file) {
+                    makeBubble(data.username, '🎤', data.timestamp, data.cid, false, data.media_file);
+                } else if (data.msg_type === 'media' && data.media_file) {
+                    makeBubble(data.username, data.msg || '', data.timestamp, data.cid, false, data.media_file, 'media');
+                } else {
+                    makeBubble(data.username, data.msg, data.timestamp, data.cid, false);
+                }
+            }
+            
+            if (document.hidden) {
+                notifySound.play().catch(e => {});
+            }
+        });
+
+        async function loadHistory() {
+            const msgBox = document.getElementById('msgBox');
+            // Удаляем старые сообщения, чтобы не дублировать при переподключении
+            msgBox.querySelectorAll('.bubble').forEach(b => b.remove());
+
+            const res = await fetch('/api/messages?room=' + encodeURIComponent(currentRoom) + '&limit=30');
+            const msgs = await res.json();
+            if (msgs.length > 0) {
+                oldestMessageId = msgs[0].id;
+                msgs.forEach(m => {
+                    if (m.msg_type === 'audio' && m.media_file) {
+                        makeBubble(m.username, '🎤', m.timestamp, m.cid, false, m.media_file);
+                    } else {
+                        makeBubble(m.username, m.msg, m.timestamp, m.cid, false);
+                    }
+                });
+            }
+        }
+
+        function makeBubble(user, msg, time, cid, isme, mediaUrl = null, mediaType = null) {
+            const msgBox = document.getElementById('msgBox');
+            const bubble = document.createElement('div');
+            bubble.className = 'bubble ' + (isme ? 'out' : 'in');
+            const bubbleId = cid ? ('msg_' + cid) : ('msg_' + Math.random().toString(36).substr(2));
+            bubble.id = bubbleId;
+
+            let html = '<span class="u-name">' + escapeHtml(user) + '</span>';
+            html += '<div class="bubble-header">';
+            
+            if (mediaUrl && mediaType === 'audio') {
+                html += '<audio controls style="width: 100%; max-width: 250px;"><source src="' + mediaUrl + '" type="audio/webm"></audio>';
+            } else if (mediaUrl && mediaType === 'media') {
+                const ext = mediaUrl.split('.').pop().toLowerCase();
+                if (['png','jpg','jpeg','gif','webp'].includes(ext)) {
+                    html += '<img src="' + mediaUrl + '" style="max-width: 250px; border-radius: 14px;" />';
+                } else if (['mp4','webm','ogg'].includes(ext)) {
+                    html += '<video controls style="max-width: 250px; border-radius: 14px;"><source src="' + mediaUrl + '" type="video/' + ext + '"></video>';
+                } else {
+                    html += '<a href="' + mediaUrl + '" target="_blank" style="color: inherit; text-decoration: underline;">Файл</a>';
+                }
+            } else {
+                html += '<div class="bubble-text">' + escapeHtml(msg) + '</div>';
+            }
+            
+            html += '<span class="meta"><span class="time">' + time + '</span><span class="status">✓</span></span>';
+            html += '</div>';
+
+            bubble.innerHTML = html;
+            msgBox.appendChild(bubble);
+            msgBox.scrollTop = msgBox.scrollHeight;
+        }
+
+        function updateOnline(users) {
+            const list = document.getElementById('onlineList');
+            const existing = new Set();
+            
+            list.querySelectorAll('.online-item[data-room]').forEach(el => {
+                const room = el.getAttribute('data-room');
+                if (room !== 'global') {
+                    const usernameKey = room.substring(3);
+                    existing.add(usernameKey);
+                    const found = users.find(u => u.username === usernameKey);
+                    if (!found) {
+                        el.remove();
+                    }
+                }
+            });
+            
+            users.forEach(user => {
+                if (user.username === username) return;
+
+                const usernameKey = user.username;
+                const existingItem = document.querySelector('.online-item[data-room="dm_' + usernameKey + '"]');
+                if (existingItem) {
+                    const img = existingItem.querySelector('img');
+                    if (img) {
+                        img.src = '/avatars/' + usernameKey + '?t=' + Date.now();
+                    }
+                    return;
+                }
+
+                const item = document.createElement('div');
+                item.className = 'online-item';
+                item.setAttribute('data-room', 'dm_' + user.username);
+                item.onclick = function() { switchRoom(this, 'dm_' + user.username, user.username); };
+                
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'online-avatar';
+                if (user.avatar) {
+                    avatarDiv.innerHTML = '<img src="/avatars/' + user.username + '" onerror="this.parentElement.textContent=\'👤\'" alt="avatar">';
+                } else {
+                    avatarDiv.textContent = '👤';
+                }
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = user.username;
+                
+                item.appendChild(avatarDiv);
+                item.appendChild(nameSpan);
+                list.appendChild(item);
+            });
+        }
+
+        // Загрузить истории (кружки)
+        async function loadStories() {
+            try {
+                const res = await fetch('/api/stories');
+                const data = await res.json();
+                if (data.stories) {
+                    renderStories(data.stories);
+                }
+            } catch (err) {
+                console.error('Stories load error:', err);
+            }
+        }
+
+        function renderStories(stories) {
+            const bar = document.getElementById('storyBar');
+            // Удаляем все, кроме кнопки создания
+            Array.from(bar.children).forEach(child => {
+                if (child.id !== 'storyCreate') child.remove();
+            });
+
+            stories.forEach(story => {
+                const circle = document.createElement('div');
+                circle.className = 'story-circle';
+                circle.title = story.username + ' — ' + (story.type === 'image' ? 'Фото' : 'Аудио');
+
+                const img = document.createElement('img');
+                img.src = '/avatars/' + story.username;
+                img.onerror = function() { this.parentElement.textContent = '👤'; };
+                circle.appendChild(img);
+
+                const badge = document.createElement('span');
+                badge.textContent = story.type === 'image' ? '🖼' : '🎧';
+                circle.appendChild(badge);
+
+                circle.onclick = () => openStory(story);
+                bar.appendChild(circle);
+            });
+        }
+
+        function openStory(story) {
+            const modal = document.getElementById('storyModal');
+            const media = document.getElementById('storyMedia');
+            const title = document.getElementById('storyTitle');
+
+            title.textContent = story.username + ' • ' + (story.type === 'image' ? 'Фото' : 'Аудио');
+            media.innerHTML = '';
+
+            if (story.type === 'image') {
+                const img = document.createElement('img');
+                img.src = '/stories/' + story.filename;
+                img.style.maxWidth = '100%';
+                img.style.borderRadius = '14px';
+                media.appendChild(img);
+            } else {
+                const audio = document.createElement('audio');
+                audio.controls = true;
+                audio.src = '/stories/' + story.filename;
+                audio.style.width = '100%';
+                media.appendChild(audio);
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeStory() {
+            const modal = document.getElementById('storyModal');
+            modal.style.display = 'none';
+        }
+
+        document.getElementById('storyCreate').addEventListener('click', () => {
+            document.getElementById('storyInput').click();
+        });
+
+        document.getElementById('storyInput').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('story', file);
+
+            try {
+                const res = await fetch('/api/stories', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await res.json();
+                if (data.success) {
+                    loadStories();
+                }
+            } catch (err) {
+                console.error('Story upload error:', err);
+            }
+        });
+
+        function switchRoom(el, room, roomName) {
+            roomName = roomName || '';
+            document.querySelectorAll('.online-item').forEach(i => i.classList.remove('active'));
+            el.classList.add('active');
+            
+            socket.emit('leave', { room: currentRoom });
+            currentRoom = room;
+            socket.emit('join', { room: currentRoom });
+            
+            const msgBox = document.getElementById('msgBox');
+            msgBox.querySelectorAll('.bubble').forEach(b => b.remove());
+            oldestMessageId = null;
+            
+            if (room === 'global') {
+                document.getElementById('roomTitle').textContent = 'Общий чат';
+                document.getElementById('roomDescription').textContent = 'Сообщения видны всем';
+            } else if (room.indexOf('dm_') === 0) {
+                const user = roomName || room.substring(3);
+                document.getElementById('roomTitle').textContent = user;
+                document.getElementById('roomDescription').textContent = '👤 Приватный чат';
+            } else if (room.indexOf('group_') === 0) {
+                document.getElementById('roomTitle').textContent = roomName || room;
+                document.getElementById('roomDescription').textContent = '👥 Групповой чат';
+            }
+            
+            loadHistory();
+            document.getElementById('loadMoreBtn').style.display = 'block';
+        }
+
+        // Поиск пользователей
+        document.getElementById('searchInput').addEventListener('input', async function(e) {
+            const q = e.target.value.trim();
+            if (q.length < 1) {
+                document.getElementById('searchResults').style.display = 'none';
+                return;
+            }
+            
+            const res = await fetch('/api/search?q=' + encodeURIComponent(q));
+            const data = await res.json();
+            
+            const resultsDiv = document.getElementById('searchResults');
+            resultsDiv.innerHTML = '';
+            
+            data.users.forEach(user => {
+                const div = document.createElement('div');
+                div.className = 'search-result';
+                
+                const avatarDiv = document.createElement('div');
+                avatarDiv.className = 'avatar-small';
+                avatarDiv.innerHTML = '<img src="/avatars/' + user.username + '" onerror="this.parentElement.textContent=\'👤\'" alt="avatar">';
+                
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = user.username;
+                
+                div.appendChild(avatarDiv);
+                div.appendChild(nameSpan);
+                
+                const usernameCopy = user.username;
+                div.onclick = function() {
+                    const room = 'dm_' + usernameCopy;
+                    const item = document.querySelector('[data-room="' + room + '"]') || createUserItem(usernameCopy);
+                    switchRoom(item, room, usernameCopy);
+                    document.getElementById('searchResults').style.display = 'none';
+                    document.getElementById('searchInput').value = '';
+                };
+                
+                resultsDiv.appendChild(div);
+            });
+            
+            resultsDiv.style.display = data.users.length > 0 ? 'block' : 'none';
+        });
+
+        function createUserItem(username) {
+            const item = document.createElement('div');
+            item.className = 'online-item';
+            item.setAttribute('data-room', 'dm_' + username);
+            item.onclick = function() { switchRoom(this, 'dm_' + username, username); };
+            
+            const avatarDiv = document.createElement('div');
+            avatarDiv.className = 'online-avatar';
+            avatarDiv.innerHTML = '<img src="/avatars/' + username + '" onerror="this.parentElement.textContent=\'👤\'" alt="avatar">';
+            
+            const nameSpan = document.createElement('span');
+            nameSpan.textContent = username;
+            
+            item.appendChild(avatarDiv);
+            item.appendChild(nameSpan);
+            document.getElementById('onlineList').appendChild(item);
+            
+            return item;
+        }
+
+        // Отправка сообщения
+        document.getElementById('sendBtn').addEventListener('click', function() {
+            const msg = document.getElementById('msgInput').value.trim();
+            if (!msg) return;
+            
+            const cid = Date.now().toString(36) + Math.random().toString(36).substring(2);
+            const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            
+            makeBubble(username, msg, timestamp, cid, true);
+            
+            socket.emit('message', {
+                username: username,
+                msg: msg,
+                room: currentRoom,
+                cid: cid,
+                timestamp: timestamp
+            });
+            
+            document.getElementById('msgInput').value = '';
+        });
+
+        document.getElementById('msgInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                document.getElementById('sendBtn').click();
+            }
+        });
+
+        // Голосовая запись
+        async function startRecording() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                const options = { mimeType: 'audio/webm;codecs=opus' };
+                
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options.mimeType = 'audio/webm';
+                }
+                if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+                    options.mimeType = '';
+                }
+                
+                mediaRecorder = new MediaRecorder(stream, options);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = function(e) {
+                    if (e.data.size > 0) {
+                        audioChunks.push(e.data);
+                    }
+                };
+
+                mediaRecorder.onstop = async function() {
+                    const mimeType = mediaRecorder.mimeType || 'audio/webm';
+                    const blob = new Blob(audioChunks, { type: mimeType });
+                    
+                    const formData = new FormData();
+                    formData.append('audio', blob, 'audio.webm');
+
+                    try {
+                        const res = await fetch('/upload_audio', {
+                            method: 'POST',
+                            body: formData
+                        });
+                        const data = await res.json();
+
+                        const cid = Date.now().toString(36) + Math.random().toString(36).substring(2);
+                        const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        
+                        makeBubble(username, '🎤', timestamp, cid, true, data.url, 'audio');
+                        
+                        socket.emit('message', {
+                            username: username,
+                            msg: '🎤',
+                            msg_type: 'audio',
+                            media_file: data.url,
+                            room: currentRoom,
+                            cid: cid,
+                            timestamp: timestamp
+                        });
+                    } catch (err) {
+                        console.error('Upload error:', err);
+                    }
+                };
+
+                mediaRecorder.start();
+                isRecording = true;
+                document.getElementById('audioBtn').textContent = '⏹️';
+                document.getElementById('audioBtn').classList.add('recording');
+            } catch (err) {
+                alert('❌ Не удалось получить доступ к микрофону. Разрешите доступ в настройках браузера.');
+            }
+        }
+
+        function stopRecording() {
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                isRecording = false;
+                document.getElementById('audioBtn').textContent = '🎤';
+                document.getElementById('audioBtn').classList.remove('recording');
+                mediaRecorder.stream.getTracks().forEach(t => t.stop());
+            }
+        }
+
+        document.getElementById('audioBtn').addEventListener('click', function() {
+            if (!isRecording) {
+                startRecording();
+            } else {
+                stopRecording();
+            }
+        });
+
+        document.getElementById('storyBtn').addEventListener('click', function() {
+            document.getElementById('storyInput').click();
+        });
+
+        document.getElementById('mediaBtn').addEventListener('click', function() {
+            document.getElementById('mediaInput').click();
+        });
+
+        document.getElementById('mediaInput').addEventListener('change', async function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const formData = new FormData();
+            formData.append('media', file);
+
+            try {
+                const res = await fetch('/upload_media', {
+                    method: 'POST',
+                    body: formData,
+                });
+                const data = await res.json();
+                if (data.url) {
+                    const cid = Date.now().toString(36) + Math.random().toString(36).substring(2);
+                    const timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+                    makeBubble(username, '', timestamp, cid, true, data.url, 'media');
+
+                    socket.emit('message', {
+                        username: username,
+                        msg: '📎',
+                        msg_type: 'media',
+                        media_file: data.url,
+                        room: currentRoom,
+                        cid: cid,
+                        timestamp: timestamp
+                    });
+                }
+            } catch (err) {
+                console.error('Media upload error:', err);
+            }
+        });
+
+        // Загрузить ещё
+        document.getElementById('loadMoreBtn').addEventListener('click', async function() {
+            if (!oldestMessageId) return;
+            
+            const res = await fetch('/api/messages?room=' + encodeURIComponent(currentRoom) + '&before=' + oldestMessageId + '&limit=30');
+            const msgs = await res.json();
+            
+            if (msgs.length === 0) {
+                document.getElementById('loadMoreBtn').textContent = 'Больше нет';
+                document.getElementById('loadMoreBtn').disabled = true;
+                return;
+            }
+            
+            const msgBox = document.getElementById('msgBox');
+            const firstBubble = msgBox.querySelector('.bubble');
+            
+            msgs.forEach(m => {
+                const bubble = document.createElement('div');
+                bubble.className = 'bubble ' + (m.username === username ? 'out' : 'in');
+                bubble.id = 'msg_' + m.cid;
+                
+                let html = '<span class="u-name">' + escapeHtml(m.username) + '</span>';
+                html += '<div class="bubble-header">';
+                html += '<div class="bubble-text">' + escapeHtml(m.msg) + '</div>';
+                html += '<span class="meta"><span class="time">' + m.timestamp + '</span><span class="status">✓</span></span>';
+                html += '</div>';
+                
+                bubble.innerHTML = html;
+                msgBox.insertBefore(bubble, firstBubble);
+            });
+            
+            oldestMessageId = msgs[0].id;
+        });
+    </script>
+
+    <div id="storyModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.75); align-items:center; justify-content:center; z-index:2000;">
+        <div style="background:rgba(18,18,36,0.95); border:1px solid rgba(124,58,237,0.6); border-radius:18px; padding:20px; max-width: 90%; width: 420px; position: relative;">
+            <button onclick="closeStory()" style="position:absolute; top:12px; right:12px; background:rgba(255,255,255,0.1); border:none; border-radius:12px; width:32px; height:32px; color:white; cursor:pointer;">✕</button>
+            <div style="margin-bottom:12px; font-weight:600; color:white;" id="storyTitle">Story</div>
+            <div id="storyMedia" style="min-height:80px;"></div>
+        </div>
+    </div>
+</body>
+</html>

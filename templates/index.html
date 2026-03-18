@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Noir Messenger</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <style>
+        :root {
+            --bg: #000000; --sidebar: #0f0f0f; --text: #ffffff;
+            --gray: #1c1c1e; --border: #2c2c2e;
+            --bubble-in: #1c1c1e; --bubble-out: #ffffff; --bubble-out-text: #000000;
+        }
+        body, html { margin: 0; height: 100%; font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow: hidden; }
+        .app-container { display: flex; height: 100vh; }
+        .sidebar { width: 300px; border-right: 1px solid var(--border); background: var(--sidebar); padding: 20px; }
+        .main-chat { flex: 1; display: flex; flex-direction: column; }
+        .messages-area { flex: 1; padding: 30px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        
+        /* Стили бабблов */
+        .bubble { max-width: 70%; padding: 10px 15px; font-size: 14px; border-radius: 18px; position: relative; }
+        .bubble.in { background: var(--bubble-in); color: var(--text); align-self: flex-start; border-bottom-left-radius: 4px; }
+        .bubble.out { background: var(--bubble-out); color: var(--bubble-out-text); align-self: flex-end; border-bottom-right-radius: 4px; }
+        .bubble.pending { opacity: 0.85; }
+        .bubble .bubble-header { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
+        .bubble .meta { font-size: 10px; opacity: 0.55; display: flex; align-items: center; gap: 4px; }
+        .bubble .status { font-size: 11px; }
+        .bubble .time { font-family: monospace; }
+        .u-name { font-size: 10px; opacity: 0.5; display: block; margin-bottom: 4px; }
+
+        .input-area { padding: 20px; display: flex; gap: 10px; background: var(--bg); }
+        .input-wrapper { flex: 1; background: var(--gray); border-radius: 20px; padding: 10px 20px; }
+        input { width: 100%; border: none; background: none; outline: none; color: white; font-size: 15px; }
+        .send-btn { background: white; border: none; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <div class="sidebar">
+            <h2>Noir</h2>
+            <p style="font-size: 12px; color: gray;">Ваш ID:</p>
+            <input type="text" id="myUsername" value="@user" style="background:none; border:none; color:gold; font-weight:bold; font-size:16px;">
+        </div>
+        <div class="main-chat">
+            <div class="messages-area" id="msgBox">
+                {% for msg in history %}
+                <div class="bubble" data-username="{{ msg['username'] }}" data-cid="{{ msg['cid'] or '' }}" data-status="delivered">
+                    <div class="bubble-header">
+                        <span class="u-name">{{ msg['username'] }}</span>
+                        <span class="meta">
+                            <span class="time">{{ msg['timestamp'] }}</span>
+                            <span class="status">✓</span>
+                        </span>
+                    </div>
+                    <div class="bubble-text">{{ msg['msg'] }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="input-area">
+                <div class="input-wrapper">
+                    <input type="text" id="msgInput" placeholder="Написать..." autocomplete="off">
+                </div>
+                <button class="send-btn" id="sendBtn">➔</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const STORAGE_KEY = 'noir_username';
+        const notifySound = new Audio('/static/notify.mp3');
+        notifySound.preload = 'auto';
+
+        // Экранируем текст, чтобы избежать XSS при вставке в HTML
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
+
+        function getStoredUsername() {
+            return localStorage.getItem(STORAGE_KEY) || '@user';
+        }
+
+        function setStoredUsername(value) {
+            var safe = value.trim() || '@user';
+            localStorage.setItem(STORAGE_KEY, safe);
+            document.getElementById('myUsername').value = safe;
+        }
+
+        var socket = io();
+        var msgBox = document.getElementById('msgBox');
+        var input = document.getElementById('msgInput');
+        var btn = document.getElementById('sendBtn');
+
+        // Временные сообщения, чтобы показать статус "отправлено" после подтверждения от сервера
+        var pendingBubbles = {};
+
+        function scrollToBottom() {
+            msgBox.scrollTop = msgBox.scrollHeight;
+        }
+
+        function makeBubble(data, isPending) {
+            var myUser = getStoredUsername();
+            var bubble = document.createElement('div');
+            bubble.className = 'bubble ' + (data.username === myUser ? 'out' : 'in');
+            if (isPending) bubble.classList.add('pending');
+            if (data.cid) bubble.dataset.cid = data.cid;
+
+            bubble.innerHTML =
+                '<div class="bubble-header">' +
+                    '<span class="u-name">' + escapeHtml(data.username) + '</span>' +
+                    '<span class="meta">' +
+                        '<span class="time">' + escapeHtml(data.timestamp) + '</span>' +
+                        '<span class="status">' + (isPending ? '…' : '✓') + '</span>' +
+                    '</span>' +
+                '</div>' +
+                '<div class="bubble-text">' + escapeHtml(data.msg) + '</div>';
+            return bubble;
+        }
+
+        function sendMessage() {
+            var user = getStoredUsername();
+            var text = input.value.trim();
+            if (text === '') return;
+
+            var cid = Date.now().toString(36) + Math.random().toString(36).slice(2);
+            var timestamp = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            var payload = { username: user, msg: text, cid: cid };
+
+            // Добавляем сообщение сразу (через короткое время будет подтверждено от сервера)
+            var bubble = makeBubble({ username: user, msg: text, timestamp: timestamp, cid: cid }, true);
+            pendingBubbles[cid] = bubble;
+            msgBox.appendChild(bubble);
+            scrollToBottom();
+
+            input.value = '';
+            socket.emit('message', payload);
+        }
+
+        // Обновляем localStorage при изменении ника
+        document.getElementById('myUsername').addEventListener('change', function () {
+            setStoredUsername(this.value);
+        });
+
+        // Клик по кнопке
+        btn.addEventListener('click', sendMessage);
+
+        // Enter в поле ввода
+        input.addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        // Прием сообщения
+        socket.on('message', function (data) {
+            var myUser = getStoredUsername();
+
+            // Обновляем статус ранее отправленного сообщения
+            if (data.cid && pendingBubbles[data.cid]) {
+                var pending = pendingBubbles[data.cid];
+                pending.classList.remove('pending');
+                pending.dataset.status = 'delivered';
+                var statusEl = pending.querySelector('.status');
+                if (statusEl) statusEl.textContent = '✓';
+                var timeEl = pending.querySelector('.time');
+                if (timeEl) timeEl.textContent = data.timestamp;
+                delete pendingBubbles[data.cid];
+                return;
+            }
+
+            // Новое сообщение от другого пользователя
+            var bubble = makeBubble(data, false);
+            msgBox.appendChild(bubble);
+            scrollToBottom();
+
+            if (document.hidden && data.username !== myUser) {
+                notifySound.play().catch(function () { /* браузер может блокировать autoplay */ });
+            }
+        });
+
+        // При загрузке страницы подставляем сохраненный ник и выравниваем историю
+        document.addEventListener('DOMContentLoaded', function () {
+            setStoredUsername(getStoredUsername());
+
+            var myUser = getStoredUsername();
+            document.querySelectorAll('.bubble').forEach(function (bubble) {
+                var bubbleUser = bubble.dataset.username;
+                bubble.classList.toggle('out', bubbleUser === myUser);
+                bubble.classList.toggle('in', bubbleUser !== myUser);
+            });
+
+            scrollToBottom();
+        });
+    </script>
+</body>
+</html>
+          
